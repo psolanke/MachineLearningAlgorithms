@@ -3,6 +3,16 @@ import numpy as np
 import pandas as pd
 import argparse
 
+label_list = ['']
+
+def add_to_list(label):
+    if(label not in label_list):
+        label_list.append(label)
+    return label_list.index(label)
+
+def get_index(label):
+    return label_list.index(label)
+
 # y = mx + b
 # m is slope, b is y-intercept
 def compute_error_for_line_given_points(b, m, points):
@@ -10,8 +20,7 @@ def compute_error_for_line_given_points(b, m, points):
     for i in range(0, len(points)):
         x = points[i, 0]
         y = points[i, 1]
-        # totalError += (y - (m * x + b)) ** 2
-        print(x + '\t' + y)
+        totalError += (y - (m * x + b)) ** 2
     return totalError / float(len(points))
 
 def step_gradient(b_current, m_current, points, learningRate):
@@ -34,8 +43,8 @@ def read_UFO_csv(filename):
     hour = []
     shape = []
     for index, row in points.iterrows():
-        hour.append(row['datetime'][-5:-3])
-        shape.append(row['shape'])
+        hour.append(int(row['datetime'][-5:-3]))
+        shape.append(add_to_list(row['shape']))
 
     df['hours'] = hour
     df['shape'] = shape
@@ -43,20 +52,25 @@ def read_UFO_csv(filename):
 
 def main(args):
     df = read_UFO_csv(args.csv_file)
-    learning_rate = 0.0001
+    learning_rate = args.learning_rate
     b = 0 # initial y-intercept guess
     m = 0 # initial slope guess
-    print("Starting gradient descent at b = {0}, m = {1}, error = {2}".format(b, m, compute_error_for_line_given_points(b, m, df.values)))
+    initial_b = b
+    initial_m = m 
+    intial_error = compute_error_for_line_given_points(b, m, df.values)
     print("Running...")
     for i in range(args.num_iterations):
         b, m = step_gradient(b, m, df.values , learning_rate)
-        print("b : " + b + "\tm : " + m)
-    print("Starting gradient descent at b = {0}, m = {1}, error = {2}".format(b, m, compute_error_for_line_given_points(b, m, df.values)))
+        print("Step : " + str(i) + "\tb : " + str(b) + "\tm : " + str(m))
+    print("Initial values are b = {0}, m = {1}, error = {2}".format(initial_b, initial_m, intial_error))
+    print("Final values are b = {0}, m = {1}, error = {2}".format(b, m, compute_error_for_line_given_points(b, m, df.values)))
 
 def parse_arguments(argv):
     parser = argparse.ArgumentParser()
     parser.add_argument('csv_file', type=str, help='Path(s) of the csv file')
-    parser.add_argument('--num_iterations', type=int, default=1000)
+    parser.add_argument('--num_iterations', type=int, default=500, help='Number of iteration to run')
+    parser.add_argument('--learning_rate', type=float, default=0.001, help='Learning rate')
+    # parser.add_argument('--num_iterations', type=int, default=1000)
     return parser.parse_args(argv)
 
 if __name__ == '__main__':
