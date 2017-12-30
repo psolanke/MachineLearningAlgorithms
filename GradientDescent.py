@@ -2,8 +2,27 @@ import sys
 import numpy as np
 import pandas as pd
 import argparse
+import json
+import io
+
+try:
+    to_unicode = unicode
+except NameError:
+    to_unicode = str
 
 label_list = ['']
+JSON_FILE = 'final-variables.json'
+ENCODING_FORMAT = 'utf8'
+def save_to_json(b, m):
+    print('Saving Variables to ' + JSON_FILE)
+    if b == None or a == None:
+        print('Data object is null \n Cannot store variables to file')
+        return
+    with io.open(JSON_FILE, 'w', encoding=ENCODING_FORMAT) as outfile:
+        data = {'b' : b, 'm' : m}
+        str_ = json.dumps(data, indent=4, sort_keys=True,
+                      separators=(',', ': '), ensure_ascii=False)
+        outfile.write(to_unicode(str_))
 
 def add_to_list(label):
     if(label not in label_list):
@@ -12,6 +31,19 @@ def add_to_list(label):
 
 def get_index(label):
     return label_list.index(label)
+
+def read_from_json():
+    print('Retrievin Variables from ' + JSON_FILE)
+    with io.open(JSON_FILE, 'r', encoding=ENCODING_FORMAT) as infile:
+        data_loaded = json.load(infile)
+    b = data_loaded['b']
+    m = data_loaded['m']
+    return b, m
+
+#Predict using linear model
+def predict(x):
+    b, m = read_from_json()
+    print('b : ' + str(b) + '\tm : ' + str(m))
 
 # y = mx + b
 # m is slope, b is y-intercept
@@ -51,6 +83,9 @@ def read_UFO_csv(filename):
     return df
 
 def main(args):
+
+
+def train(args):
     df = read_UFO_csv(args.csv_file)
     learning_rate = args.learning_rate
     b = 0 # initial y-intercept guess
@@ -64,6 +99,8 @@ def main(args):
         print("Step : " + str(i) + "\tb : " + str(b) + "\tm : " + str(m))
     print("Initial values are b = {0}, m = {1}, error = {2}".format(initial_b, initial_m, intial_error))
     print("Final values are b = {0}, m = {1}, error = {2}".format(b, m, compute_error_for_line_given_points(b, m, df.values)))
+
+    save_to_json(b, m)
 
 def parse_arguments(argv):
     parser = argparse.ArgumentParser()
