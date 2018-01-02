@@ -24,6 +24,8 @@ import pandas as pd
 import argparse
 import json
 import io
+import matplotlib.pyplot as plt
+import time
 
 try:
     to_unicode = unicode
@@ -90,9 +92,13 @@ def read_UFO_csv(filename):
     for index, row in points.iterrows():
         hour.append(int(row['datetime'][-5:-3]))
         shape.append(add_to_list(row['shape']))
-
+    plt.plot(hour, shape, 'ro')
+    plt.xlabel('Hours')
+    plt.ylabel('Shape')
+    plt.savefig('points'+str(int(time.time()))+'.png')
     df['hours'] = hour
     df['shape'] = shape
+
     return df
 
 def main(args):
