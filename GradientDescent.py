@@ -1,4 +1,24 @@
+'''
+The MIT License (MIT)
+Copyright (c) 2017 Pratik Solanke
+Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files (the "Software"), to deal in the Software without restriction, including without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software, and to permit persons to whom the Software is furnished to do so, subject to the following conditions:
+The above copyright notice and this permission notice shall be included in all copies or substantial portions of the Software.
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+
+Demonstrating the working of gradient descent
+The code aims to fit a linear model to the UFO dataset by,
+finding the values of m and b using gradient descent
+Error is calculated using SSE
+
+Training :  python3 GradientDescent.py --train --csv_file=scrubbed.csv
+            python3 GradientDescent.py --train --csv_file=scrubbed.csv --num_iterations=2000 --learning_rate=0.0032 --consts_file='data.json'
+Prediction: python3 GradientDescent.py --x=20
+            python3 GradientDescent.py --x=20 --model_file='data.json'
+
+'''
+
 import sys
+import os
 import numpy as np
 import pandas as pd
 import argparse
@@ -11,15 +31,15 @@ except NameError:
     to_unicode = str
 
 label_list = ['']
-JSON_FILE = 'final-variables.json'
 ENCODING_FORMAT = 'utf8'
-def save_to_json(b, m):
-    print('Saving Variables to ' + JSON_FILE)
-    if b == None or a == None:
-        print('Data object is null \n Cannot store variables to file')
+
+def save_to_file(b, m, consts_file):
+    print('Saving Constants to ' + consts_file)
+    if b == None or m == None:
+        print('Data object is null \n Cannot store constants to file')
         return
-    with io.open(JSON_FILE, 'w', encoding=ENCODING_FORMAT) as outfile:
-        data = {'b' : b, 'm' : m}
+    with io.open(consts_file, 'w', encoding=ENCODING_FORMAT) as outfile:
+        data = {'b' : b, 'm' : m, 'label_list' : label_list}
         str_ = json.dumps(data, indent=4, sort_keys=True,
                       separators=(',', ': '), ensure_ascii=False)
         outfile.write(to_unicode(str_))
@@ -32,18 +52,11 @@ def add_to_list(label):
 def get_index(label):
     return label_list.index(label)
 
-def read_from_json():
-    print('Retrievin Variables from ' + JSON_FILE)
-    with io.open(JSON_FILE, 'r', encoding=ENCODING_FORMAT) as infile:
+def read_from_file(consts_file):
+    print('Retrievin Constants from ' + consts_file)
+    with io.open(consts_file, 'r', encoding=ENCODING_FORMAT) as infile:
         data_loaded = json.load(infile)
-    b = data_loaded['b']
-    m = data_loaded['m']
-    return b, m
-
-#Predict using linear model
-def predict(x):
-    b, m = read_from_json()
-    print('b : ' + str(b) + '\tm : ' + str(m))
+    return data_loaded['b'], data_loaded['m'], data_loaded['label_list']
 
 # y = mx + b
 # m is slope, b is y-intercept
@@ -83,31 +96,49 @@ def read_UFO_csv(filename):
     return df
 
 def main(args):
+    if args.train:
+        if not(os.path.isfile(args.csv_file)):
+            print('No CSV file found.\nExiting...')
+            sys.exit(1)
+        train(args.csv_file, args.num_iterations, args.learning_rate, args.consts_file)
+    else:
+        if args.x == None:
+            print('Value of x not found. Try --help option')
+            sys.exit(1)
+        predict(args.x, args.model_file)
 
-
-def train(args):
-    df = read_UFO_csv(args.csv_file)
-    learning_rate = args.learning_rate
+def train(csv_file, num_iterations, learning_rate, consts_file):
+    df = read_UFO_csv(csv_file)
     b = 0 # initial y-intercept guess
     m = 0 # initial slope guess
     initial_b = b
     initial_m = m 
     intial_error = compute_error_for_line_given_points(b, m, df.values)
-    print("Running...")
-    for i in range(args.num_iterations):
+    print('Running...')
+    for i in range(num_iterations):
         b, m = step_gradient(b, m, df.values , learning_rate)
-        print("Step : " + str(i) + "\tb : " + str(b) + "\tm : " + str(m))
-    print("Initial values are b = {0}, m = {1}, error = {2}".format(initial_b, initial_m, intial_error))
-    print("Final values are b = {0}, m = {1}, error = {2}".format(b, m, compute_error_for_line_given_points(b, m, df.values)))
+        print('Step : ' + str(i) + '\tb : ' + str(b) + '\tm : ' + str(m) + '\terror: ' + str(compute_error_for_line_given_points(b, m, df.values)))
+    print('Initial values were b = {0}, m = {1}, error = {2}'.format(initial_b, initial_m, intial_error))
+    print('Final values are b = {0}, m = {1}, error = {2}'.format(b, m, compute_error_for_line_given_points(b, m, df.values)))
 
-    save_to_json(b, m)
+    save_to_file(b, m, consts_file)
+
+#Predict using linear model
+def predict(x, in_file):
+    b, m, label_list = read_from_file(in_file)
+    print('b : ' + str(b) + '\tm : ' + str(m))
+    y = round(m * x + b)
+    print('Predicted Shape: ' + label_list[y])
 
 def parse_arguments(argv):
     parser = argparse.ArgumentParser()
-    parser.add_argument('csv_file', type=str, help='Path(s) of the csv file')
+    parser.add_argument('--csv_file', type=str, help='Path(s) of the csv file')
     parser.add_argument('--num_iterations', type=int, default=500, help='Number of iteration to run')
     parser.add_argument('--learning_rate', type=float, default=0.001, help='Learning rate')
-    # parser.add_argument('--num_iterations', type=int, default=1000)
+    parser.add_argument('--train', help='Training Option', action='store_true')
+    parser.add_argument('--consts_file', type=str, default='final-consts.json', help='Output file where b, m from gradient descent is stored')
+    parser.add_argument('--model_file', type=str, default='final-consts.json', help='File to load b, m from for prediction')
+    parser.add_argument('--x', type=int, help='Hour of the day in 24hr format')
     return parser.parse_args(argv)
 
 if __name__ == '__main__':
