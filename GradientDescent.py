@@ -16,7 +16,7 @@ Prediction: python3 GradientDescent.py --x=20
             python3 GradientDescent.py --x=20 --model_file='data.json'
 
 '''
-
+#Imports
 import sys
 import os
 import numpy as np
@@ -35,6 +35,9 @@ except NameError:
 label_list = ['']
 ENCODING_FORMAT = 'utf8'
 
+# Takes values of b, m and the output file as arguments 
+# Saves these b, m and label_list to the output file,
+# in json format
 def save_to_file(b, m, consts_file):
     print('Saving Constants to ' + consts_file)
     if b == None or m == None:
@@ -46,6 +49,7 @@ def save_to_file(b, m, consts_file):
                       separators=(',', ': '), ensure_ascii=False)
         outfile.write(to_unicode(str_))
 
+# Adds labels not in the list to the label_list
 def add_to_list(label):
     if(label not in label_list):
         label_list.append(label)
@@ -54,6 +58,7 @@ def add_to_list(label):
 def get_index(label):
     return label_list.index(label)
 
+# Reads the json file where the consts and label_list are stored
 def read_from_file(consts_file):
     print('Retrievin Constants from ' + consts_file)
     with io.open(consts_file, 'r', encoding=ENCODING_FORMAT) as infile:
@@ -62,6 +67,7 @@ def read_from_file(consts_file):
 
 # y = mx + b
 # m is slope, b is y-intercept
+# calculates the mean square error
 def compute_error_for_line_given_points(b, m, points):
     totalError = 0
     for i in range(0, len(points)):
@@ -82,7 +88,9 @@ def step_gradient(b_current, m_current, points, learningRate):
     new_b = b_current - (learningRate * b_gradient)
     new_m = m_current - (learningRate * m_gradient)
     return [new_b, new_m]
-
+# Reads data from CSV file,
+# removes rows containing any number of missing vlues,
+# returns the shape and hour of day(from datetime) as dataframe
 def read_UFO_csv(filename):
     points = pd.read_csv(filename)
     points = points.dropna()
@@ -113,6 +121,7 @@ def main(args):
             sys.exit(1)
         predict(args.x, args.model_file)
 
+# Training for linear model using gradient descent
 def train(csv_file, num_iterations, learning_rate, consts_file):
     df = read_UFO_csv(csv_file)
     b = 0 # initial y-intercept guess
