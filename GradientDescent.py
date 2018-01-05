@@ -33,7 +33,12 @@ except NameError:
     to_unicode = str
 
 label_list = ['']
+conts_list = ['']
 ENCODING_FORMAT = 'utf8'
+TIMESTAMP = str(int(time.time()))
+DATASET_GRAPH_NAME = 'points_'+TIMESTAMP+'.png'
+ERROR_GRAPH_NAME = 'error_'+TIMESTAMP+'.png'
+CONSTS_GRAPH_NAME = 'constants_'+TIMESTAMP+'.png'
 
 # Takes values of b, m and the output file as arguments 
 # Saves these b, m and label_list to the output file,
@@ -103,7 +108,8 @@ def read_UFO_csv(filename):
     plt.plot(hour, shape, 'ro')
     plt.xlabel('Hours')
     plt.ylabel('Shape')
-    plt.savefig('points'+str(int(time.time()))+'.png')
+    plt.savefig(DATASET_GRAPH_NAME)
+    plt.close()
     df['hours'] = hour
     df['shape'] = shape
 
@@ -124,6 +130,7 @@ def main(args):
 # Training for linear model using gradient descent
 def train(csv_file, num_iterations, learning_rate, consts_file):
     df = read_UFO_csv(csv_file)
+    consts_list = []
     b = 0 # initial y-intercept guess
     m = 0 # initial slope guess
     initial_b = b
@@ -132,7 +139,24 @@ def train(csv_file, num_iterations, learning_rate, consts_file):
     print('Running...')
     for i in range(num_iterations):
         b, m = step_gradient(b, m, df.values , learning_rate)
-        print('Step : ' + str(i) + '\tb : ' + str(b) + '\tm : ' + str(m) + '\terror: ' + str(compute_error_for_line_given_points(b, m, df.values)))
+        error = compute_error_for_line_given_points(b, m, df.values)
+        consts_list.append([b,m,error])
+        print('Step : ' + str(i) + '\tb : ' + str(b) + '\tm : ' + str(m) + '\terror: ' + str(error))
+    plt.plot(range(len(consts_list)), [row[2] for row in consts_list], 'r')
+    plt.xlabel('Hours')
+    plt.ylabel('Shape')
+    plt.savefig(ERROR_GRAPH_NAME)
+    plt.close()
+    
+    plt.subplot(211)
+    plt.plot(range(len(consts_list)), [row[1] for row in consts_list], 'r')
+    plt.subplot(212)
+    plt.plot(range(len(consts_list)), [row[0] for row in consts_list], 'g')
+    # plt.plot(range(len(consts_list)), [row[1] for row in consts_list], 'r', range(len(consts_list)), [row[0] for row in consts_list], 'g')
+    # plt.xlabel('Hours')
+    # plt.ylabel('Shape')
+    plt.savefig(CONSTS_GRAPH_NAME)
+    plt.close()
     print('Initial values were b = {0}, m = {1}, error = {2}'.format(initial_b, initial_m, intial_error))
     print('Final values are b = {0}, m = {1}, error = {2}'.format(b, m, compute_error_for_line_given_points(b, m, df.values)))
 
